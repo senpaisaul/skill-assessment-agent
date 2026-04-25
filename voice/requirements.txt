@@ -1,0 +1,5 @@
+# Stage 8 voice mode (optional — not required for the hackathon submission)
+# Install separately: pip install -r voice/requirements.txt
+
+httpx>=0.28.0
+pipecat-ai[deepgram,elevenlabs,silero,daily]>=0.0.50

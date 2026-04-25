@@ -1,0 +1,22 @@
+{
+  "name": "02_frontend_to_ml_pivot",
+  "description": "Frontend engineer pivoting to ML. Most required skills are gaps; tests the GapAnalyzer's adjacency logic (TypeScript→Python, React→PyTorch are weak adjacencies; problem-solving / web-API design carry over).",
+  "input": {
+    "resume_text": "Priya Sharma\npriya.sharma@example.com | Bangalore, India\n\nEDUCATION\nB.E. Information Technology, MSRIT (2020-2024)\n\nEXPERIENCE\nFrontend Engineer II, Razorpay (Jul 2024 – present)\n- Owned the merchant dashboard's reconciliation UI: React 18 + TypeScript + Redux Toolkit\n- Migrated 15 pages from CRA to Next.js App Router; reduced bundle size by 38%\n- Built component library with Storybook + Chromatic visual regression\n- Mentored 2 junior engineers on TypeScript fundamentals\n\nFrontend Engineer Intern, Zerodha (May 2023 – Aug 2023)\n- Refactored Kite web's order ticket component to reduce re-renders by 60%\n- Wrote Cypress E2E tests for the post-trade flow\n\nPROJECTS\nthreadshare.app — anonymous Twitter alt for college students\n- Next.js, Prisma, PostgreSQL, NextAuth\n- 800 active users in first month\n\nSKILLS\nJavaScript · TypeScript · React · Next.js · Redux · Tailwind\nNode.js · Express · Prisma\nPostgreSQL · MongoDB · Redis\nGit · Docker (basic) · AWS (basic)\nCypress · Jest · Storybook\nPython (intro coursework only)",
+    "jd_text": "ML Engineer (Early Career) — Recommendations Team\n\nWe're growing our recommendations team and looking for engineers comfortable picking up ML on the job. Strong programmers welcome — we'll teach you ML if you can ship clean code.\n\nWhat you'll do:\n- Build and ship recommendation models (collaborative filtering, two-tower, sequence models)\n- Own the offline → online evaluation pipeline\n- Work with TBs of clickstream data on Spark / Databricks\n- Pair with senior MLEs on architecture and on-call rotations\n\nRequired:\n- 2+ years of production engineering, any language\n- Solid Python (or willingness to ramp fast)\n- SQL fluency — joins, window functions, query plans\n- Comfort with Linux, Git, Docker\n- Can read research papers and translate them into production code\n\nPreferred:\n- Prior ML/DL exposure: PyTorch or TensorFlow, even at the tutorial level\n- Spark / Databricks / distributed compute experience\n- Statistics fundamentals: A/B testing, hypothesis tests"
+  },
+  "expected_output_shape": {
+    "skill_assessments": "Python likely UNDERSTAND (low confidence, since intro coursework), SQL likely APPLY (PostgreSQL experience transfers), Linux/Git/Docker likely UNDERSTAND-APPLY",
+    "gap_analysis": {
+      "overall_match_score_range": [0.25, 0.55],
+      "expected_top_gap_skills_subset": ["Python", "PyTorch / TensorFlow", "Spark"],
+      "expected_strengths_subset": [],
+      "summary_should_mention": ["pivot", "transfer"]
+    },
+    "learning_plan": {
+      "expected_modules_count_range": [3, 6],
+      "expected_total_hours_range": [40, 200],
+      "expected_first_module_should_be_foundational": true
+    }
+  }
+}

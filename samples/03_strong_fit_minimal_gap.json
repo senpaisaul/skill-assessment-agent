@@ -1,0 +1,22 @@
+{
+  "name": "03_strong_fit_minimal_gap",
+  "description": "Strong fit case — experienced backend engineer applying for a senior backend role they're well-qualified for. Tests the 'no significant gaps' branch in the PlanGenerator (returns an empty plan with a 'you're a fit' summary). Exercises strengths-heavy GapAnalysis output.",
+  "input": {
+    "resume_text": "Marcus Chen\nmarcus.chen@example.com | Seattle, WA\n\nEDUCATION\nM.S. Computer Science, University of Washington (2019)\nB.S. Computer Engineering, UC Berkeley (2016)\n\nEXPERIENCE\nSenior Software Engineer, Stripe (Mar 2022 – present)\n- Tech lead for Treasury's reconciliation pipeline. 12-engineer team, $4B/yr in flows.\n- Designed and shipped a double-entry ledger rewrite in Go: PostgreSQL + Redis Streams + Kafka. p99 latency dropped from 380ms to 42ms.\n- Owned the on-call rotation playbook; cut MTTR by 55% over 6 months.\n- Led design reviews for 3 incoming engineers; mentored on Go idioms and DB internals.\n\nSenior Software Engineer, Cloudflare (Jul 2019 – Feb 2022)\n- Built Workers KV's tiered storage path: Rust + RocksDB.\n- Authored the load-shedding library used by 8+ internal services.\n\nPROJECTS\nopen-source: contributed Postgres CDC connector to Apache Kafka Connect (~2k stars)\nopen-source: maintainer of go-pgx-pool helpers package\n\nSKILLS\nGo · Rust · Python · SQL\nPostgreSQL (advanced — query plans, replication, partitioning) · Kafka · Redis · RocksDB\nDistributed systems (Raft, MVCC, idempotency, sagas)\nDocker · Kubernetes (production, 4 yrs) · Terraform · AWS (multi-region)\nObservability: Prometheus · Grafana · OpenTelemetry · Datadog\nLinux · gdb · perf · eBPF (intro)",
+    "jd_text": "Senior Backend Engineer — Payments Infrastructure\n\nWe're hiring a senior backend engineer to own a critical piece of our payments stack. The team operates billions of transactions per year; reliability and correctness are non-negotiable.\n\nWhat you'll do:\n- Design and ship low-latency services in Go\n- Own one or more critical pipelines end-to-end, including on-call\n- Mentor mid-level engineers via design reviews and code review\n- Work closely with finance and compliance to ship correct ledger primitives\n\nRequired:\n- 5+ years of backend engineering in a typed language (Go strongly preferred; Rust / Java OK)\n- Production PostgreSQL experience — schema design, query plans, replication\n- Distributed systems fundamentals: idempotency, ordering, fault tolerance\n- Production Kubernetes — debugging, observability, custom controllers\n- Strong code review and mentorship track record\n\nPreferred:\n- Payments / fintech / ledger systems experience\n- Kafka or other event-streaming systems\n- Open-source contributions"
+  },
+  "expected_output_shape": {
+    "skill_assessments": "All required skills expected at ANALYZE-EVALUATE with HIGH confidence",
+    "gap_analysis": {
+      "overall_match_score_range": [0.85, 1.0],
+      "expected_top_gap_skill": "(none — all required skills met)",
+      "expected_strengths_subset": ["Go", "PostgreSQL", "Kubernetes", "Distributed systems"],
+      "summary_should_mention": ["strong fit", "qualified"]
+    },
+    "learning_plan": {
+      "expected_modules_count": 0,
+      "expected_total_hours": 0,
+      "summary_should_mention": ["already a strong fit", "no skill gaps"]
+    }
+  }
+}

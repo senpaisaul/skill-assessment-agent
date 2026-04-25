@@ -1,0 +1,23 @@
+{
+  "name": "01_senior_ai_engineer",
+  "description": "AI engineer with strong Python+LangGraph background applying to a Senior AI Engineer role on a platform team. Headline demo case — Kubernetes is the critical gap, RAG/LangGraph are strengths-with-gaps. Surfaces all five workers cleanly.",
+  "input": {
+    "resume_text": "Abhay Sengar\nsengarabhay03@gmail.com | Bhopal, India\ngithub.com/senpaisaul | linkedin.com/in/abhaysengar2109\n\nEDUCATION\nB.Tech Computer Science Engineering, VIT Bhopal University (2022-2026)\n\nEXPERIENCE\nAI Engineer Intern, WorkElate (Feb-Mar 2026)\n- Built production email intent classification system: Python, FastAPI, LangChain LCEL 3-step chain, Gmail OAuth2 integration.\n- Implemented daily task digest service with APScheduler, GPT-4o summaries over a MongoDB boards/cards schema.\n\nAI/ML Intern, Smart Bridge x Google Cloud (Nov 2025 - Jan 2026)\n- Vertex AI pipelines for tabular forecasting; deployed via GCP Cloud Run.\n\nPROJECTS\nUniQuant — Generative AI financial forecasting platform\n- Amazon Chronos T5-Small + GJR-GARCH(1,1,1) + 4-state HMM regime detection\n- FastAPI + Next.js 14, regime-conditional conformal calibration\n\nSparsaOS — Live 3-agent GPT-4o CRM\n- LangGraph supervisor + asyncio orchestration + SSE streaming\n- Render + Vercel + Supabase, sparsaos.vercel.app\n\nVoice AI Agent for Wise customer support\n- Deepgram nova-3 STT + LangChain + GPT-4o-mini + ElevenLabs turbo v2.5 TTS\n- Twilio Media Streams (WebSocket v2) for real-time call routing\n\nHackerCup Multi-Agent DSA Solver\n- 6-agent LangGraph system. Meta HackerCup 2025 AI Track Global Finalist.\n\nSKILLS\nPython · FastAPI · LangChain · LangGraph · LangSmith · Pydantic · Instructor\nRAG · Vector databases (Chroma, FAISS) · OpenAI · Anthropic · GPT-4o · Claude\nNext.js · React · TypeScript · TailwindCSS\nDocker · Git · GCP Vertex AI · Render · Vercel · Supabase\nPostgreSQL · MongoDB · Redis\nAsync Python · Multi-agent orchestration · Production ML",
+    "jd_text": "Senior AI Engineer — Platform Team\n\nWe're hiring a Senior AI Engineer to design and operate our agentic systems platform. You'll own the architecture for multi-agent workflows running in production for our enterprise customers.\n\nWhat you'll do:\n- Design and build LangGraph-based multi-agent systems\n- Operate them at scale on Kubernetes — including custom operators, HPA tuning, observability stack\n- Build robust RAG pipelines with vector databases\n- Mentor mid-level engineers on agentic system design\n- Work closely with product to define new agent capabilities\n\nRequired skills:\n- 5+ years of Python in production\n- LangGraph or equivalent agent orchestration framework (CrewAI, AutoGen)\n- Kubernetes — ability to author Helm charts, debug pod scheduling, write CRDs\n- PostgreSQL — schema design, query optimization, connection pooling\n- Strong async Python / FastAPI experience\n- RAG systems with production vector databases\n\nPreferred:\n- Experience with LangSmith / Langfuse for agent observability\n- GraphQL APIs\n- Prior experience leading technical projects"
+  },
+  "expected_output_shape": {
+    "skill_assessments": "list of SkillAssessment, one per skill in skills_to_assess. Python expected at APPLY-ANALYZE (high confidence), LangGraph expected at APPLY (medium-high confidence), Kubernetes expected at REMEMBER-UNDERSTAND (low confidence, big gap)",
+    "gap_analysis": {
+      "overall_match_score_range": [0.30, 0.60],
+      "expected_top_gap_skill": "Kubernetes",
+      "expected_strengths_subset": ["Python", "LangGraph", "FastAPI"],
+      "summary_should_mention": ["Kubernetes", "platform"]
+    },
+    "learning_plan": {
+      "expected_modules_count_range": [3, 5],
+      "expected_first_module_skill": "Kubernetes",
+      "expected_total_hours_range": [20, 80],
+      "every_module_should_have": ["resources (>=1)", "rationale", "estimated_hours_min/max", "target_level"]
+    }
+  }
+}
