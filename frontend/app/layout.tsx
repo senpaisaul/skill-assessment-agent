@@ -4,8 +4,8 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Skill Assessment Agent",
   description:
-    "Conversational skill assessment + personalised learning plan. " +
-    "IRT-driven adaptive interview, ESCO-grounded gap analysis, curated resources.",
+    "Voice-powered conversational skill assessment with IRT-driven adaptive interview, " +
+    "ESCO-grounded gap analysis, and personalised learning plans.",
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="font-sans antialiased">{children}</body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

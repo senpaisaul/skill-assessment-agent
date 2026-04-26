@@ -1,6 +1,3 @@
-// API client — calls the FastAPI backend.
-// Throws on non-2xx so callers can show error UI instead of silent failures.
-
 import type {
   StartAssessmentResponse,
   RespondResponse,
@@ -24,10 +21,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   });
   if (!res.ok) {
     let detail = `${res.status} ${res.statusText}`;
-    try {
-      const err = await res.json();
-      if (err?.detail) detail = err.detail;
-    } catch {}
+    try { const err = await res.json(); if (err?.detail) detail = err.detail; } catch { }
     throw new ApiError(res.status, detail);
   }
   return res.json() as Promise<T>;
@@ -37,10 +31,7 @@ async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`);
   if (!res.ok) {
     let detail = `${res.status} ${res.statusText}`;
-    try {
-      const err = await res.json();
-      if (err?.detail) detail = err.detail;
-    } catch {}
+    try { const err = await res.json(); if (err?.detail) detail = err.detail; } catch { }
     throw new ApiError(res.status, detail);
   }
   return res.json() as Promise<T>;
@@ -58,6 +49,24 @@ export async function startAssessment(args: {
   });
 }
 
+export async function startAssessmentWithUpload(args: {
+  resumeFile: File;
+  jd_text: string;
+  user_id?: string | null;
+}): Promise<StartAssessmentResponse> {
+  const form = new FormData();
+  form.append("resume", args.resumeFile);
+  form.append("jd_text", args.jd_text);
+  if (args.user_id) form.append("user_id", args.user_id);
+  const res = await fetch(`${BASE}/api/assess/start-upload`, { method: "POST", body: form });
+  if (!res.ok) {
+    let detail = `${res.status} ${res.statusText}`;
+    try { const err = await res.json(); if (err?.detail) detail = err.detail; } catch { }
+    throw new ApiError(res.status, detail);
+  }
+  return res.json() as Promise<StartAssessmentResponse>;
+}
+
 export async function respondToQuestion(args: {
   session_id: string;
   response: string;
@@ -71,4 +80,31 @@ export async function getResult(sessionId: string): Promise<AssessmentResultResp
 
 export async function checkReady(): Promise<{ ready: boolean; checks: Record<string, unknown> }> {
   return getJson("/api/ready");
+}
+
+/** TTS via backend ElevenLabs proxy. Returns audio blob or null (→ browser fallback). */
+export async function textToSpeech(text: string): Promise<Blob | null> {
+  try {
+    const res = await fetch(`${BASE}/api/tts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (res.status === 204) return null;
+    if (!res.ok) return null;
+    return await res.blob();
+  } catch {
+    return null;
+  }
+}
+
+/** Ask the agent to rephrase the current question. No scoring, no state change. */
+export async function clarifyQuestion(args: {
+  session_id: string;
+  original_question: string;
+  skill: string;
+  bloom_level: number;
+  candidate_message: string;
+}): Promise<{ rephrased_question: string; context: string }> {
+  return postJson("/api/assess/clarify", args);
 }

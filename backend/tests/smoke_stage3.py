@@ -180,14 +180,15 @@ from app.graph.builder import get_compiled_graph_async, shutdown_graph
 from langgraph.types import Command
 
 
-def _interrupt_payload(result):
-    if not isinstance(result, dict):
-        return None
-    interrupts = result.get("__interrupt__")
-    if not interrupts:
-        return None
-    first = interrupts[0]
-    return getattr(first, "value", None) or (first if isinstance(first, dict) else None)
+async def _interrupt_payload(graph, config):
+    """Extract interrupt payload from graph state (LangGraph 0.2.60+)."""
+    snapshot = await graph.aget_state(config)
+    if snapshot and hasattr(snapshot, "tasks") and snapshot.tasks:
+        for task in snapshot.tasks:
+            if hasattr(task, "interrupts") and task.interrupts:
+                first = task.interrupts[0]
+                return getattr(first, "value", None) or (first if isinstance(first, dict) else None)
+    return None
 
 
 async def main() -> int:
@@ -210,7 +211,7 @@ async def main() -> int:
         "messages": [],
     }, config)
 
-    payload = _interrupt_payload(result)
+    payload = await _interrupt_payload(graph, config)
     assert payload is not None, f"Expected interrupt; got result keys: {list(result.keys())}"
     print(f"    ✓ First question received:")
     print(f"        skill={payload['skill']}  bloom={payload['bloom_level']}  "
@@ -226,7 +227,7 @@ async def main() -> int:
             Command(resume=f"My answer to turn {turn_count}: I think it's a great tool."),
             config,
         )
-        payload = _interrupt_payload(result)
+        payload = await _interrupt_payload(graph, config)
         if payload is None:
             print(f"\n[3] Turn {turn_count} resumed → no more interrupts (interview complete)")
             break

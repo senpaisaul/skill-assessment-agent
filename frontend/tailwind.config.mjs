@@ -7,27 +7,35 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Deep slate background, indigo brand, accents for proficiency levels
-        bg: { 950: "#0a0a0f", 900: "#0f0f17", 800: "#1a1a25", 700: "#262635" },
-        brand: {
-          50: "#eef2ff",
-          400: "#818cf8",
-          500: "#6366f1",
-          600: "#4f46e5",
-          700: "#4338ca",
+        bg: {
+          950: "#0b1215",
+          900: "#0f181c",
+          800: "#162025",
+          700: "#1e2d33",
         },
-        // Bloom-level color ramp (1=red, 5=emerald) for proficiency badges
+        brand: {
+          50: "#ecfdf5",
+          400: "#2dd4bf",
+          500: "#14b8a6",
+          600: "#0d9488",
+          700: "#0f766e",
+        },
+        accent: {
+          400: "#fbbf24",
+          500: "#eab308",
+          600: "#ca8a04",
+        },
         bloom: {
-          1: "#ef4444",
-          2: "#f59e0b",
-          3: "#10b981",
-          4: "#3b82f6",
-          5: "#8b5cf6",
+          1: "#f87171",
+          2: "#fbbf24",
+          3: "#34d399",
+          4: "#38bdf8",
+          5: "#a78bfa",
         },
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "ui-monospace", "monospace"],
+        sans: ["Inter", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
     },
   },

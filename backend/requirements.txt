@@ -6,7 +6,7 @@ python-dotenv==1.0.1
 
 # LangGraph + LangChain (orchestration)
 langgraph==0.2.60
-langgraph-supervisor==0.0.9
+
 langgraph-checkpoint-sqlite==2.0.1
 langchain==0.3.13
 langchain-core==0.3.28
@@ -18,12 +18,11 @@ instructor==1.7.2
 pydantic==2.10.4
 pydantic-settings==2.7.0
 
-# Memory layer (cross-session candidate facts)
-mem0ai==0.1.40
+
 
 # Skill matching: embeddings + vector store
 sentence-transformers==3.3.1
-chromadb==0.5.23
+
 
 # Resume parsing
 pypdf==5.1.0
@@ -36,5 +35,4 @@ aiofiles==24.1.0
 # Observability (optional, one env var to activate)
 langsmith==0.2.4
 
-# LLM-as-judge (Scorer node)
-deepeval==2.1.5
+

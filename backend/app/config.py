@@ -1,9 +1,5 @@
 """
 Typed configuration loaded from environment variables / .env file.
-
-Per the playbook: use cheap models (Haiku 4.5 / GPT-5 mini) for Parser and
-Scorer (structured tasks), and stronger models (Sonnet / GPT-5) for the
-Interviewer and PlanGenerator (creative + reasoning tasks).
 """
 
 from __future__ import annotations
@@ -25,10 +21,7 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
 
-    # --- Model assignments per node (overridable via env) ---
-    # Parser/Scorer = cheap structured models
-    # Interviewer/PlanGenerator = stronger reasoning models
-    # Supervisor = cheap (it just routes)
+    # --- Model assignments per node ---
     parser_model: str = "gpt-4o-mini"
     scorer_model: str = "gpt-4o-mini"
     supervisor_model: str = "gpt-4o-mini"
@@ -36,10 +29,14 @@ class Settings(BaseSettings):
     plan_generator_model: str = "gpt-4o"
     gap_analyzer_model: str = "gpt-4o-mini"
 
-    # --- Provider preference: "openai" or "anthropic" ---
+    # --- Provider preference ---
     llm_provider: Literal["openai", "anthropic"] = "openai"
 
-    # --- Memory layer (Mem0) — optional, only for cross-session ---
+    # --- ElevenLabs TTS (optional — frontend falls back to browser TTS) ---
+    elevenlabs_api_key: Optional[str] = None
+    elevenlabs_voice_id: str = "9BWtsMINqrJLrRacOk9x"  # Aria — empathetic, conversational
+
+    # --- Memory layer (Mem0) — optional ---
     mem0_enabled: bool = False
     mem0_api_key: Optional[str] = None
 
@@ -55,9 +52,9 @@ class Settings(BaseSettings):
     )
 
     # --- Interview tuning (IRT loop) ---
-    min_questions_per_skill: int = 2
-    max_questions_per_skill: int = 4
-    irt_confidence_threshold: float = 0.7  # stop probing skill once confidence >= this
+    min_questions_per_skill: int = 2      # ask at least 2 per skill before soft-stop
+    max_questions_per_skill: int = 3      # hard cap — 3 questions per skill max
+    irt_confidence_threshold: float = 0.55  # soft-stop sooner once we have a reasonable signal
 
     # --- Storage paths ---
     chroma_persist_dir: str = "./chroma_data"

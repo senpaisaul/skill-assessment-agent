@@ -2,9 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ReactFlow needs its own base CSS — we override colors via Tailwind classes
-   on the node components themselves. */
 @import "reactflow/dist/style.css";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
   color-scheme: dark;
@@ -12,23 +12,156 @@
 
 html,
 body {
-  background: #0a0a0f;
-  color: #e5e7eb;
+  background: #0b1215;
+  color: #e0e7ec;
   min-height: 100vh;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* Subtle radial vignette for landing page hero */
 .bg-vignette {
   background:
-    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(99, 102, 241, 0.15), transparent 60%),
-    #0a0a0f;
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(20, 184, 166, 0.07), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(234, 179, 8, 0.03), transparent 50%),
+    #0b1215;
 }
 
-/* Pulse for "thinking" indicator dots */
-@keyframes pulse-soft {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
+/* ---- Soundwave ---- */
+@keyframes speak-bar {
+  0% {
+    transform: scaleY(0.15);
+  }
+
+  25% {
+    transform: scaleY(0.85);
+  }
+
+  50% {
+    transform: scaleY(0.35);
+  }
+
+  75% {
+    transform: scaleY(1.0);
+  }
+
+  100% {
+    transform: scaleY(0.15);
+  }
 }
-.animate-pulse-soft {
-  animation: pulse-soft 1.4s ease-in-out infinite;
+
+.speak-bar {
+  animation: speak-bar 0.55s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes listen-bar {
+
+  0%,
+  100% {
+    transform: scaleY(0.12);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scaleY(0.55);
+    opacity: 1;
+  }
+}
+
+.listen-bar {
+  animation: listen-bar 1.5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes idle-bar {
+
+  0%,
+  100% {
+    transform: scaleY(0.06);
+    opacity: 0.25;
+  }
+
+  50% {
+    transform: scaleY(0.12);
+    opacity: 0.4;
+  }
+}
+
+.idle-bar {
+  animation: idle-bar 2.6s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes pulse-dot {
+
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes glow-ring {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(20, 184, 166, 0.15), 0 0 60px rgba(20, 184, 166, 0.04);
+  }
+
+  50% {
+    box-shadow: 0 0 30px rgba(20, 184, 166, 0.3), 0 0 80px rgba(20, 184, 166, 0.08);
+  }
+}
+
+.glow-ring {
+  animation: glow-ring 3s ease-in-out infinite;
+}
+
+.glow-ring-active {
+  animation: glow-ring 1s ease-in-out infinite;
+}
+
+/* File drop zone */
+.drop-zone {
+  border: 2px dashed rgba(20, 184, 166, 0.25);
+  transition: all 0.2s ease;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+  border-color: rgba(20, 184, 166, 0.6);
+  background: rgba(20, 184, 166, 0.04);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fade-up 0.3s ease-out forwards;
+}
+
+.insight-card {
+  transition: all 0.2s ease;
+}
+
+.insight-card:hover {
+  transform: translateX(2px);
+  border-left-width: 4px;
 }

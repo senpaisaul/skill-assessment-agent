@@ -1,21 +1,23 @@
 """
 Assessment endpoints.
 
-Stage 3: /start runs the graph until the first interrupt() (i.e., the first
-question is ready) and returns it. /respond resumes the graph with the
-candidate's answer, runs until the next interrupt() (or END), and returns
-either the next question or the final result.
+/start        — accept resume text + JD text, kick off graph
+/start-upload — accept resume file (PDF/DOCX/TXT) + JD text
+/respond      — submit candidate answer, resume graph
+/clarify      — rephrase current question (no scoring, no state change)
+/result       — fetch final assessment + learning plan
 """
 
 from __future__ import annotations
 
+import io
 import uuid
 from typing import Optional, Any
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from langgraph.types import Command
 
-from app.models import LearningPlan, GapAnalysis, SkillAssessment
+from app.models import LearningPlan, GapAnalysis, SkillAssessment, ProficiencyLevel
 from app.graph import get_compiled_graph_async
 
 router = APIRouter()
@@ -28,11 +30,10 @@ router = APIRouter()
 class StartAssessmentRequest(BaseModel):
     resume_text: str
     jd_text: str
-    user_id: Optional[str] = None  # for Mem0 cross-session memory
+    user_id: Optional[str] = None
 
 
 class QuestionPayload(BaseModel):
-    """What the frontend needs to render the next question + IRT progress bar."""
     skill: str
     skill_index: int
     skills_total: int
@@ -43,7 +44,7 @@ class QuestionPayload(BaseModel):
 
 class StartAssessmentResponse(BaseModel):
     session_id: str
-    status: str  # 'awaiting_response' | 'complete' | 'error'
+    status: str
     next_question: Optional[QuestionPayload] = None
     message: Optional[str] = None
 
@@ -55,9 +56,22 @@ class RespondRequest(BaseModel):
 
 class RespondResponse(BaseModel):
     session_id: str
-    status: str  # 'awaiting_response' | 'complete'
+    status: str
     next_question: Optional[QuestionPayload] = None
     interview_complete: bool = False
+
+
+class ClarifyRequest(BaseModel):
+    session_id: str
+    original_question: str
+    skill: str
+    bloom_level: int
+    candidate_message: str
+
+
+class ClarifyResponse(BaseModel):
+    rephrased_question: str
+    context: str = ""
 
 
 class AssessmentResultResponse(BaseModel):
@@ -65,60 +79,104 @@ class AssessmentResultResponse(BaseModel):
     skill_assessments: list[SkillAssessment]
     gap_analysis: Optional[GapAnalysis]
     learning_plan: Optional[LearningPlan]
-    irt_thetas: dict[str, float] = {}  # for the demo's ability-curve viz
+    irt_thetas: dict[str, float] = {}
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# File text extraction helpers
 # ---------------------------------------------------------------------------
 
-def _extract_interrupt_payload(graph_result: Any) -> Optional[dict]:
-    """
-    LangGraph signals an interrupt by including a `__interrupt__` key in the
-    result dict (or via state.tasks.interrupts in newer versions). Pull out
-    the payload we passed to interrupt() in the Interviewer.
-    """
+async def _extract_text_from_upload(file: UploadFile) -> str:
+    content = await file.read()
+    filename = (file.filename or "").lower()
+
+    if filename.endswith(".pdf"):
+        return _extract_pdf(content)
+    elif filename.endswith(".docx"):
+        return _extract_docx(content)
+    elif filename.endswith(".txt") or filename.endswith(".md"):
+        return content.decode("utf-8", errors="replace")
+    else:
+        try:
+            return content.decode("utf-8", errors="replace")
+        except Exception:
+            raise HTTPException(400, f"Unsupported file type: {file.filename}. Use PDF, DOCX, or TXT.")
+
+
+def _extract_pdf(content: bytes) -> str:
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(io.BytesIO(content))
+        pages = [page.extract_text() for page in reader.pages if page.extract_text()]
+        result = "\n\n".join(pages).strip()
+        if not result:
+            raise HTTPException(400, "PDF appears to be empty or image-only.")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(400, f"Failed to parse PDF: {e}")
+
+
+def _extract_docx(content: bytes) -> str:
+    try:
+        from docx import Document
+        doc = Document(io.BytesIO(content))
+        paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+        result = "\n".join(paragraphs).strip()
+        if not result:
+            raise HTTPException(400, "DOCX appears to be empty.")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(400, f"Failed to parse DOCX: {e}")
+
+
+# ---------------------------------------------------------------------------
+# Interrupt extraction helpers
+# ---------------------------------------------------------------------------
+
+def _extract_interrupt_from_result(graph_result: Any) -> Optional[dict]:
     if not isinstance(graph_result, dict):
         return None
     interrupts = graph_result.get("__interrupt__")
     if not interrupts:
         return None
-    # interrupts is a tuple/list of Interrupt objects; first one is our pause
     first = interrupts[0]
-    # Interrupt object: .value is the dict we passed in
     return getattr(first, "value", None) or (first if isinstance(first, dict) else None)
 
 
+async def _extract_interrupt_payload(graph, config, graph_result: Any) -> Optional[dict]:
+    legacy = _extract_interrupt_from_result(graph_result)
+    if legacy is not None:
+        return legacy
+    snapshot = await graph.aget_state(config)
+    if snapshot and hasattr(snapshot, "tasks") and snapshot.tasks:
+        for task in snapshot.tasks:
+            if hasattr(task, "interrupts") and task.interrupts:
+                first = task.interrupts[0]
+                return getattr(first, "value", None) or (first if isinstance(first, dict) else None)
+    return None
+
+
 # ---------------------------------------------------------------------------
-# Endpoints
+# Shared graph start logic
 # ---------------------------------------------------------------------------
 
-@router.post("/start", response_model=StartAssessmentResponse)
-async def start_assessment(req: StartAssessmentRequest):
-    """
-    Kick off an assessment session.
-
-    Runs Parser, then runs the Interviewer until its first interrupt() —
-    returns the first question payload to the candidate. Frontend calls
-    /respond next with the candidate's answer.
-    """
-    if not req.resume_text.strip() or not req.jd_text.strip():
+async def _run_start(resume_text: str, jd_text: str, user_id: Optional[str] = None) -> StartAssessmentResponse:
+    if not resume_text.strip() or not jd_text.strip():
         raise HTTPException(400, "resume_text and jd_text are both required")
 
     session_id = str(uuid.uuid4())
     graph = await get_compiled_graph_async()
 
-    config = {
-        "configurable": {
-            "thread_id": session_id,
-            "user_id": req.user_id,
-        }
-    }
+    config = {"configurable": {"thread_id": session_id, "user_id": user_id}}
     initial_state = {
-        "resume_text": req.resume_text,
-        "jd_text": req.jd_text,
+        "resume_text": resume_text,
+        "jd_text": jd_text,
         "session_id": session_id,
-        "user_id": req.user_id,
+        "user_id": user_id,
         "messages": [],
     }
 
@@ -127,7 +185,7 @@ async def start_assessment(req: StartAssessmentRequest):
     except Exception as e:
         raise HTTPException(500, f"Graph execution failed: {e}")
 
-    interrupt_payload = _extract_interrupt_payload(result)
+    interrupt_payload = await _extract_interrupt_payload(graph, config, result)
     if interrupt_payload:
         return StartAssessmentResponse(
             session_id=session_id,
@@ -135,12 +193,20 @@ async def start_assessment(req: StartAssessmentRequest):
             next_question=QuestionPayload(**interrupt_payload),
         )
 
-    # No interrupt → graph reached END (e.g., empty skills_to_assess)
     return StartAssessmentResponse(
         session_id=session_id,
         status="complete",
         message="Graph completed without requiring questions.",
     )
+
+
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
+
+@router.post("/start", response_model=StartAssessmentResponse)
+async def start_assessment(req: StartAssessmentRequest):
+    return await _run_start(req.resume_text, req.jd_text, req.user_id)
 
 
 @router.post("/start-upload", response_model=StartAssessmentResponse)
@@ -149,17 +215,14 @@ async def start_assessment_upload(
     jd_text: str = Form(...),
     user_id: Optional[str] = Form(None),
 ):
-    """Same as /start but accepts a resume file (PDF/DOCX/TXT). Stage 3 stub."""
-    raise HTTPException(501, "File upload extraction lands in Stage 6")
+    """Accept PDF/DOCX/TXT resume file + JD text."""
+    resume_text = await _extract_text_from_upload(resume)
+    return await _run_start(resume_text, jd_text, user_id)
 
 
 @router.post("/respond", response_model=RespondResponse)
 async def respond_to_question(req: RespondRequest):
-    """
-    Submit candidate's answer. Resumes the LangGraph interrupt with
-    Command(resume=<response>). Returns either the next question or
-    interview_complete=True (after which the caller should poll /result).
-    """
+    """Submit candidate's answer and resume the graph."""
     graph = await get_compiled_graph_async()
     config = {"configurable": {"thread_id": req.session_id}}
 
@@ -168,7 +231,7 @@ async def respond_to_question(req: RespondRequest):
     except Exception as e:
         raise HTTPException(500, f"Graph resume failed: {e}")
 
-    interrupt_payload = _extract_interrupt_payload(result)
+    interrupt_payload = await _extract_interrupt_payload(graph, config, result)
     if interrupt_payload:
         return RespondResponse(
             session_id=req.session_id,
@@ -177,7 +240,6 @@ async def respond_to_question(req: RespondRequest):
             interview_complete=False,
         )
 
-    # No interrupt → interview is done; Scorer/GapAnalyzer/PlanGenerator have run
     return RespondResponse(
         session_id=req.session_id,
         status="complete",
@@ -185,12 +247,51 @@ async def respond_to_question(req: RespondRequest):
     )
 
 
+@router.post("/clarify", response_model=ClarifyResponse)
+async def clarify_question(req: ClarifyRequest):
+    """
+    Rephrase the current question based on candidate's clarification request.
+    
+    Does NOT advance IRT state or score anything — purely conversational.
+    The candidate can ask for rephrasing, ask to relate to their experience,
+    or ask for the question to be broken down.
+    """
+    graph = await get_compiled_graph_async()
+    config = {"configurable": {"thread_id": req.session_id}}
+
+    # Get current state to access resume
+    snapshot = await graph.aget_state(config)
+    if not snapshot or not snapshot.values:
+        raise HTTPException(404, f"Session {req.session_id} not found")
+
+    resume = snapshot.values.get("resume")
+    if resume is None:
+        raise HTTPException(400, "Session has no parsed resume yet")
+
+    from app.graph.question_gen import clarify_question as do_clarify
+
+    try:
+        bloom = ProficiencyLevel(req.bloom_level)
+    except ValueError:
+        bloom = ProficiencyLevel.APPLY
+
+    result = await do_clarify(
+        original_question=req.original_question,
+        skill=req.skill,
+        bloom_level=bloom,
+        candidate_message=req.candidate_message,
+        resume=resume,
+    )
+
+    return ClarifyResponse(
+        rephrased_question=result.rephrased_question,
+        context=result.context,
+    )
+
+
 @router.get("/result/{session_id}", response_model=AssessmentResultResponse)
 async def get_result(session_id: str):
-    """
-    Fetch final assessment + learning plan for a completed session.
-    Reads final state from the LangGraph checkpointer using session_id as thread_id.
-    """
+    """Fetch final assessment + learning plan."""
     graph = await get_compiled_graph_async()
     config = {"configurable": {"thread_id": session_id}}
 
@@ -207,9 +308,3 @@ async def get_result(session_id: str):
         learning_plan=values.get("learning_plan"),
         irt_thetas=irt.get("theta", {}),
     )
-
-
-@router.get("/stream/{session_id}")
-async def stream_events(session_id: str):
-    """SSE stream of node events. Wired in Stage 6 alongside the frontend."""
-    raise HTTPException(501, "SSE streaming wired in Stage 6")

@@ -199,18 +199,51 @@ scorer_mod.structured_completion = fake_scorer_completion
 import app.graph.nodes.gap_analyzer as gap_mod
 gap_mod.structured_completion = fake_scorer_completion
 
+# PlanGenerator: stub the node entirely (Stage 4 validates Scorer+Gap, not Plan)
+import app.graph.nodes.plan_generator as plan_mod
+
+
+async def fake_plan_generator_node(state):
+    from app.models import LearningPlan, LearningModule, LearningResource, ResourceType
+    ga = state.get("gap_analysis")
+    modules = []
+    if ga and ga.gaps:
+        for g in ga.gaps[:2]:
+            modules.append(LearningModule(
+                skill=g.skill, target_level=g.required_level,
+                estimated_hours_min=4.0, estimated_hours_max=8.0, prerequisites=[],
+                resources=[LearningResource(
+                    title=f"(stub) {g.skill}", url=f"https://roadmap.sh/?q={g.skill}",
+                    resource_type=ResourceType.DOCS, source="roadmap.sh",
+                    estimated_minutes=240, reason="(stage-4 stub)",
+                )], rationale="(stage-4 stub)",
+            ))
+    return {"learning_plan": LearningPlan(
+        candidate_name=state.get("resume", None) and state["resume"].name,
+        target_role=state["jd"].title,
+        total_hours_min=sum(m.estimated_hours_min for m in modules),
+        total_hours_max=sum(m.estimated_hours_max for m in modules),
+        modules=modules, suggested_order=[m.skill for m in modules],
+        summary="(stage-4 stub)",
+    )}
+
+
+plan_mod.plan_generator_node = fake_plan_generator_node
+nodes_pkg.plan_generator_node = fake_plan_generator_node
+
 from app.graph.builder import get_compiled_graph_async, shutdown_graph
 from langgraph.types import Command
 
 
-def _interrupt_payload(result):
-    if not isinstance(result, dict):
-        return None
-    interrupts = result.get("__interrupt__")
-    if not interrupts:
-        return None
-    first = interrupts[0]
-    return getattr(first, "value", None) or (first if isinstance(first, dict) else None)
+async def _interrupt_payload(graph, config):
+    """Extract interrupt payload from graph state (LangGraph 0.2.60+)."""
+    snapshot = await graph.aget_state(config)
+    if snapshot and hasattr(snapshot, "tasks") and snapshot.tasks:
+        for task in snapshot.tasks:
+            if hasattr(task, "interrupts") and task.interrupts:
+                first = task.interrupts[0]
+                return getattr(first, "value", None) or (first if isinstance(first, dict) else None)
+    return None
 
 
 async def main() -> int:
@@ -241,7 +274,7 @@ async def main() -> int:
         "RAG": "I built a chunking pipeline with semantic splitter and Chroma for retrieval.",
     }
     while True:
-        payload = _interrupt_payload(result)
+        payload = await _interrupt_payload(graph, config)
         if payload is None:
             break
         turn += 1

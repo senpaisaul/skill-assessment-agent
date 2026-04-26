@@ -39,10 +39,20 @@ from app.models import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _skill_match(a: str, b: str) -> bool:
+    """
+    Flexible skill name match — handles LLM variations like
+    'Python' vs 'Python 3' vs 'Python programming'.
+    Returns True if either string is a substring of the other (case-insensitive).
+    """
+    a, b = a.lower().strip(), b.lower().strip()
+    return a == b or a in b or b in a
+
+
 def _required_level_for(skill: str, jd: JobDescription) -> Optional[ProficiencyLevel]:
     """Same mapping as Scorer — required @ senior+ = ANALYZE, etc."""
-    in_required = any(skill.lower().strip() == s.lower().strip() for s in jd.required_skills)
-    in_preferred = any(skill.lower().strip() == s.lower().strip() for s in jd.preferred_skills)
+    in_required = any(_skill_match(skill, s) for s in jd.required_skills)
+    in_preferred = any(_skill_match(skill, s) for s in jd.preferred_skills)
     if not (in_required or in_preferred):
         return None
     if in_preferred and not in_required:
@@ -54,7 +64,7 @@ def _required_level_for(skill: str, jd: JobDescription) -> Optional[ProficiencyL
 
 
 def _is_required(skill: str, jd: JobDescription) -> bool:
-    return any(skill.lower().strip() == s.lower().strip() for s in jd.required_skills)
+    return any(_skill_match(skill, s) for s in jd.required_skills)
 
 
 def _severity(
@@ -169,7 +179,26 @@ async def gap_analyzer_node(state: AssessmentState) -> dict:
         return {"error": "gap_analyzer_node: jd and resume required"}
 
     by_skill = {a.skill.lower().strip(): a for a in assessments}
-    candidate_known = list(resume.skills)
+
+    def _lookup_assessment(skill: str):
+        """
+        Find the assessment for a JD skill using fuzzy matching.
+        The scorer's LLM may return "Python 3" for a JD skill named "Python" —
+        exact dict.get() would miss it and treat the skill as unassessed (→ 0% match).
+        """
+        key = skill.lower().strip()
+        # 1. Exact match first
+        if key in by_skill:
+            return by_skill[key]
+        # 2. Substring match in either direction
+        for assessed_key, assessment in by_skill.items():
+            if key in assessed_key or assessed_key in key:
+                return assessment
+        return None
+
+    # Use all known skills: resume-listed + any skills that were assessed.
+    assessed_skill_names = [a.skill for a in assessments]
+    candidate_known = list({s for s in list(resume.skills) + assessed_skill_names})
 
     gaps: list[SkillGap] = []
     strengths: list[str] = []
@@ -185,7 +214,7 @@ async def gap_analyzer_node(state: AssessmentState) -> dict:
         if required_level is None:
             continue  # shouldn't happen since we iterate JD skills, but defensive
 
-        a = by_skill.get(skill.lower().strip())
+        a = _lookup_assessment(skill)
         is_required = _is_required(skill, jd)
 
         # Strength: assessed at or above required level
@@ -197,8 +226,8 @@ async def gap_analyzer_node(state: AssessmentState) -> dict:
         adjacent = await find_adjacent_skills(
             target_skill=skill,
             candidate_skills=candidate_known,
-            top_k=3,
-            min_similarity=0.35,
+            top_k=5,          # increased from 3 — more connections in the graph
+            min_similarity=0.20,  # lowered from 0.35 — many tech skills are related
         ) if embeddings_available() else []
 
         gap = SkillGap(

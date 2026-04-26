@@ -1,24 +1,66 @@
-# Skill Assessment Agent
+<div align="center">
 
-> Conversational skill assessment + personalised learning plan agent. A LangGraph supervisor over five workers — Parser, Interviewer (IRT-driven adaptive questioning), Scorer (Bloom-tagged rubric), GapAnalyzer (ESCO-grounded), and PlanGenerator — backed by Mem0 for cross-session candidate memory.
+<img src="https://readme-typing-svg.demolab.com?font=Inter&weight=700&size=32&pause=1000&color=0D9488&center=true&vCenter=true&width=600&lines=Skill+Assessment+Agent;Voice-Powered+AI+Interviewer;Adaptive+%C2%B7+Evidence-Grounded+%C2%B7+Honest" alt="Typing SVG" />
 
-Built for the Deccan AI hackathon. Submission deadline: **Mon Apr 27, 2026, 1:00 AM IST**.
+### _A resume tells you what someone **claims** to know._
+### _This agent finds out what they **actually** know._
+
+<br/>
+
+[![LangGraph](https://img.shields.io/badge/LangGraph-0.2-0d9488?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PC9zdmc+&logoColor=white)](https://github.com/langchain-ai/langgraph)
+[![Next.js](https://img.shields.io/badge/Next.js-15.2.4-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
+
+<br/>
+
+> 🏆 **Deccan AI Hackathon 2026** · Built by [Abhay Sengar](https://abhaysengar.vercel.app) · Meta HackerCup 2025 AI Track Global Finalist
+
+<br/>
+
+[**Live Demo**](#-quick-start) · [**Architecture**](#️-architecture) · [**Scoring Logic**](#-how-the-scoring-works) · [**API Docs**](#-api-endpoints)
+
+</div>
 
 ---
 
-## What it does
+## ✨ What Makes This Different
 
-A resume tells you what someone *claims* to know. This agent finds out what they *actually* know.
+Most assessment tools are multiple-choice quizzes. This is a **live conversational interview** that adapts to you in real-time — the same way a world-class human interviewer would.
 
-1. **Ingests** a job description and a candidate's resume.
-2. **Conversationally probes** each required skill with adaptive questioning that gets harder when the candidate is doing well and easier when they're struggling — implementing a lightweight IRT (Item Response Theory) loop.
-3. **Scores** each skill 1-5 on a Bloom-aligned rubric (Remember → Understand → Apply → Analyze → Evaluate/Create), with mandatory evidence quotes and a confidence rating.
-4. **Identifies gaps** by matching scored proficiency against JD requirements via ESCO skill ontology.
-5. **Generates a learning plan** of *adjacent* skills the candidate can realistically acquire, with curated resources from roadmap.sh, freeCodeCamp, YouTube, and DEV.to, and time-to-acquire estimates.
+<table>
+<tr>
+<td width="33%" valign="top">
+
+### 🧠 Adaptive Difficulty
+Questions get harder when you're strong, easier when you're struggling. Powered by **Item Response Theory (Rasch 1PL model)** — the same math behind the GRE and GMAT.
+
+*Spearman ρ > 0.96 with just 8.5% of a full test's items (Stanford CRFM, 2025).*
+
+</td>
+<td width="33%" valign="top">
+
+### 🕸️ Skill Graph
+Your gaps aren't a flat list. A **ReactFlow graph** connects your existing strengths to each gap via semantic cosine similarity (`all-mpnet-base-v2`). See *exactly* which skills you already own that make each gap learnable.
+
+</td>
+<td width="33%" valign="top">
+
+### 🔍 Evidence-Required Scoring
+Every proficiency rating ships with **direct quoted evidence** from your resume AND your interview answers, plus a `0–1` confidence number. Pydantic enforces `min_length=1` on the evidence list — there is **no code path** that produces a black-box score.
+
+</td>
+</tr>
+</table>
+
+### 🎙️ Voice-First Interview Experience
+
+The agent speaks questions aloud via **ElevenLabs TTS** (Aria voice — warm, empathetic, conversational) with automatic browser `SpeechSynthesis` fallback. Your spoken answers are captured via the **Web Speech API**. Filler words (`um`, `uh`, `like`) are cleaned before scoring. At any point, ask the agent to **rephrase the question** — it'll relate it to your experience, break it down, or give an example — without losing your place in the interview.
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 ```mermaid
 flowchart LR
@@ -41,307 +83,371 @@ flowchart LR
 
     SQLite[(SQLite checkpointer<br/>thread_id = session_id)] -.-> Sup
 
-    style Sup fill:#4f46e5,color:#fff,stroke:#6366f1
-    style Interviewer fill:#1a1a25,color:#e5e7eb,stroke:#6366f1,stroke-width:2px
-    style Scorer fill:#1a1a25,color:#e5e7eb,stroke:#6366f1
-    style Gap fill:#1a1a25,color:#e5e7eb,stroke:#6366f1
-    style Plan fill:#1a1a25,color:#e5e7eb,stroke:#6366f1
-    style Parser fill:#1a1a25,color:#e5e7eb,stroke:#6366f1
-    style HITL fill:#10b981,color:#fff
-    style SQLite fill:#262635,color:#94a3b8
+    style Sup fill:#0d9488,color:#fff,stroke:#14b8a6
+    style Interviewer fill:#0f181c,color:#e0e7ec,stroke:#14b8a6,stroke-width:2px
+    style Scorer fill:#0f181c,color:#e0e7ec,stroke:#14b8a6
+    style Gap fill:#0f181c,color:#e0e7ec,stroke:#14b8a6
+    style Plan fill:#0f181c,color:#e0e7ec,stroke:#14b8a6
+    style Parser fill:#0f181c,color:#e0e7ec,stroke:#14b8a6
+    style HITL fill:#eab308,color:#000
+    style SQLite fill:#1e2d33,color:#94a3b8
 ```
 
-State and routing flow through a single `AssessmentState` TypedDict ([`backend/app/graph/state.py`](backend/app/graph/state.py)). Every worker is an async function `(state) -> partial_state_update`. The Supervisor is **deterministic** (state-machine, not LLM-routed) — chosen for predictability under demo conditions.
+**Five specialised workers**, orchestrated by a **deterministic state-machine supervisor** (not LLM-routed — chosen for predictable demo behaviour):
 
-**HITL pause/resume.** The Interviewer uses LangGraph `interrupt()` to pause the graph after generating each question. The candidate's answer arrives via `POST /api/assess/respond` and resumes the graph with `Command(resume=...)`. SQLite checkpointer means a session can survive an app restart.
+| Worker | Model | Responsibility |
+|--------|-------|----------------|
+| 🗂️ **Parser** | `gpt-4o-mini` | Resume (PDF/DOCX/TXT) + JD → typed Pydantic schemas via Instructor |
+| 🎙️ **Interviewer** | `gpt-4o` | IRT-driven adaptive question loop with `interrupt()` HITL pause/resume |
+| 🎯 **Scorer** | `gpt-4o-mini` | IRT θ + interview content + resume → per-skill Bloom 1–5 assessment |
+| 🔬 **GapAnalyzer** | `gpt-4o-mini` | Severity-weighted gaps + sentence-transformers adjacency + LLM summary |
+| 📚 **PlanGenerator** | `gpt-4o` | MALPP 3-agent pattern → curated resources from 4 sources + time estimates |
 
-**Memory.** LangGraph SQLite `MemorySaver` checkpointer keys on `thread_id = session_id` for in-session conversation. Mem0 (optional) keys on `user_id` for cross-session candidate facts.
-
-**Observability.** Toggle `LANGSMITH_TRACING=true` in `.env` and the entire graph trace shows up in LangSmith — node-by-node, with timing and structured outputs.
+**Key design decisions:**
+- **HITL via `interrupt()`** — The Interviewer pauses the graph after each question. The candidate's answer arrives via `POST /api/assess/respond` and resumes with `Command(resume=...)`. The SQLite checkpointer means a session survives an app restart.
+- **Deterministic supervisor** — State-machine routing (not LLM-driven) for zero hallucinated transitions under demo conditions.
+- **LangSmith opt-in** — Set `LANGSMITH_TRACING=true` in `.env` and every node shows up with timing and structured outputs.
 
 ---
 
-## Scoring & logic
+## 🧮 How the Scoring Works
 
-This section documents the per-stage decision rules so reviewers (and future Abhay) can audit them without reading the source.
+### IRT Adaptive Loop
 
-### Stage 1 — Parsing (`parser_node`)
+```
+P(correct | θ, b) = sigmoid(θ − b)
+```
 
-- LLM (Instructor + Pydantic) extracts `Resume` and `JobDescription` from raw text.
-- `temperature=0.0` for determinism.
-- `skills_to_assess` is the JD's required + preferred skills, ordered as:
-  1. Required skills the candidate **also claims** on the resume — highest signal, verify first.
-  2. Required skills the candidate did **not** claim — gap exploration.
-  3. Preferred skills — only if time/turns allow.
+| Symbol | Meaning |
+|--------|---------|
+| **θ** | Candidate ability per skill — starts at `0`, updated via Newton-Raphson MAP estimation |
+| **b** | Question difficulty — Bloom level 1–5 mapped as `b = level − 3` |
+| **Next question** | Targets `b ≈ θ` (maximum information point under the Rasch model) |
+| **Scoring** | Continuous `[0, 1]` — not binary pass/fail, so partial credit feeds θ |
 
-### Stage 2 — Adaptive interviewing (`interviewer_node` + `irt.py`)
+**Termination per skill:**
+- Hard cap: `n_questions ≥ MAX_QUESTIONS_PER_SKILL` (default 4)
+- Soft stop: `n_questions ≥ MIN_QUESTIONS_PER_SKILL` AND `confidence ≥ 0.7`
 
-The Interviewer drives an **IRT (Rasch / 1PL) adaptive question loop** per skill.
+### Per-Skill Assessment
 
-- **Difficulty parameter `b`** is set from Bloom level (1=Remember, 2=Understand, 3=Apply, 4=Analyze, 5=Evaluate), centered so `b = level − 3`.
-- **Ability `θ` per skill** starts at 0 (no prior). After each scored response, θ is updated via Newton-Raphson MAP estimation (5 iterations, Gaussian prior with weight 0.5 to prevent wild swings on n=1).
-- **Next question's Bloom level** is whichever `b` is closest to current θ (max-information point under Rasch), preferring not-yet-asked levels.
-- **Per-skill termination** — stop probing when:
-  - Hard cap: `n_questions >= MAX_QUESTIONS_PER_SKILL` (default 4), OR
-  - Soft stop: `n_questions >= MIN_QUESTIONS_PER_SKILL` (default 2) AND `confidence ≥ IRT_CONFIDENCE_THRESHOLD` (default 0.7) where confidence = `1 / (1 + standard_error)`.
-- **Response scoring** is continuous in [0, 1] (not binary) so partial credit feeds into θ. Returned by an LLM call against an explicit rubric with prompt-injection defense (candidate text wrapped in `<candidate_response>` delimiters).
+Each skill gets a `SkillAssessment` fusing three signals:
 
-### Stage 3 — Per-skill scoring (`scorer_node`)
+| Signal | Source | Role |
+|--------|--------|------|
+| **Quantitative** | Converged θ → snapped to nearest Bloom level | Primary level |
+| **Qualitative** | LLM rubric: `HIGH` / `MEDIUM` / `LOW` evidence quality | Adjusts ±1 level |
+| **Confidence** | `f(evidence_quality, n_turns)` | Feeds gap severity weight |
 
-Each skill gets exactly one `SkillAssessment` synthesized from three inputs:
-
-- **Quantitative**: converged θ from IRT (snapped to nearest Bloom level via `theta_to_bloom`).
-- **Qualitative**: an LLM call with a 3-point evidence-quality rubric (`HIGH` / `MEDIUM` / `LOW`) — chosen over 1-10 because Databricks' research shows low-precision rubrics are dramatically more consistent.
-- **Evidence**: mandatory direct quotes from both the resume excerpt and the interview turns. Pydantic enforces `min_length=1`.
-
-`confidence` is a function of evidence_quality plus a small bonus for more interview turns:
 ```python
 base = {"HIGH": 0.9, "MEDIUM": 0.65, "LOW": 0.4}
 bonus = min(0.05 * max(0, n_turns - 1), 0.1)
 confidence = min(1.0, base + bonus)
 ```
 
-`gap_to_required = required_level − assessed_level` where `required_level` is derived from JD seniority:
-- senior/staff/principal/lead → ANALYZE (4)
-- mid/junior → APPLY (3)
-- preferred-only skills → UNDERSTAND (2)
+> *Why 3-point rubrics? Databricks' LLM-as-judge research shows low-precision rubrics are dramatically more consistent than 1–10 scales.*
 
-### Stage 4 — Gap analysis (`gap_analyzer_node`)
+### Gap Severity Formula
 
-For each JD skill:
-- If `assessed_level >= required_level` → strength.
-- Otherwise → gap, with `severity` computed as:
-  ```python
-  base = 0.85 if required else 0.30
-  gap_factor = min(1.0, (required_level - current_level) / 4.0)
-  confidence_weight = 0.5 + 0.5 * assessment.confidence
-  severity = min(1.0, base * gap_factor * confidence_weight)
-  ```
-
-For each gap, **adjacent already-known skills** are computed via `sentence-transformers/all-mpnet-base-v2` cosine similarity over the candidate's resume skills (top 3 with `min_similarity=0.35`). These adjacencies are what the PlanGenerator leverages as "transferable foundations". The whole adjacency path degrades gracefully to `[]` if the model can't be loaded (network, OOM, missing dep).
-
-`overall_match_score = (required-skill strengths / total required skills) × (0.5 + 0.5 × avg confidence)` — the confidence multiplier prevents a 100% match score from a low-quality interview.
-
-The candidate-facing summary is one paragraph written by an LLM call with explicit "honest, encouraging, no corporate fluff" tone.
-
-### Stage 5 — Personalised learning plan (`plan_generator_node`)
-
-Implements the **MALPP three-agent pattern** (arXiv:2601.17346):
-
-1. **Diagnose** — given `GapAnalysis` + the candidate's known skills, an LLM call decides which gaps to include (skip severity < 0.2), in what prerequisite-respecting order, with what target Bloom level.
-2. **Reflect** — a separate LLM call validates the plan against five checks: critical-gap coverage, prerequisite existence, ordering, hallucinated leveraged skills, target-level adequacy.
-3. **Retry** — if `is_valid=false`, re-run Diagnose with reflection feedback. Hard cap of 2 reflection rounds (avoids infinite loops, tokens stay bounded).
-
-After MALPP produces the modules, the planner attaches **real curated resources** from four sources, in priority order:
-- **roadmap.sh** — always-available deep link, no network call (guaranteed fallback).
-- **freeCodeCamp catalog** — hardcoded mapping for ~12 common skills with explicit hour estimates.
-- **YouTube Data API v3** — videos filtered to `videoDuration=medium` (4-20 min).
-- **DEV.to API** — articles with their published `reading_time_minutes`.
-
-All async fetchers gracefully return `[]` on any failure (no API key, network down, parsing errors). Each module is capped at 4 resources.
-
-**Time estimation per module:**
 ```python
-base_hours = sum(resource.estimated_minutes for r in resources) / 60
-multiplier = 2.0 if current_level is None      # beginner
-           = 1.5 if level_gap >= 2             # intermediate
-           = 1.0 otherwise                     # advanced (just polishing)
-hours_min = max(4.0, base_hours * multiplier)
-hours_max = hours_min * 1.5                    # accounts for practice/projects
+severity = base × gap_factor × confidence_weight
+# base            = 0.85 (required skill) or 0.30 (preferred)
+# gap_factor      = (required_level − current_level) / 4
+# confidence_weight = 0.5 + 0.5 × assessment.confidence
 ```
 
----
+### MALPP Learning Plan Generation
 
-## Tech stack
+Implements the **MALPP three-agent pattern** ([arXiv:2601.17346](https://arxiv.org/abs/2601.17346)):
 
-**Backend** Python 3.11+ · FastAPI · LangGraph 0.2 · langgraph-supervisor · Instructor · Pydantic v2 · Mem0 · sentence-transformers · Chroma · DeepEval
+```
+Diagnose ──► Reflect ──► Retry (max 2 rounds)
+    │              │
+    └─ which gaps  └─ validate: coverage · ordering ·
+       what order     no hallucinated skills · target level
+```
 
-**Frontend** Next.js 15 · React 19 · TypeScript · Tailwind v3 · ReactFlow · lucide-react
+Resources sourced from:
 
-**Models** `gpt-4o-mini` for Parser/Scorer/Supervisor/GapAnalyzer (cheap, structured) · `gpt-4o` for Interviewer/PlanGenerator (reasoning + creativity). Anthropic Claude Haiku 4.5 / Sonnet are drop-in alternatives via env config.
+| Source | Notes |
+|--------|-------|
+| **roadmap.sh** | Deep link — guaranteed, no network call needed |
+| **freeCodeCamp** | Hardcoded catalog for ~12 common skills with hour estimates |
+| **YouTube Data API v3** | Filtered to `videoDuration=medium` (4–20 min) |
+| **DEV.to API** | Articles with `reading_time_minutes` |
 
----
-
-## Differentiators
-
-Three things this submission does that most won't:
-
-1. **IRT-driven adaptive questioning, visible in the UI.** Question difficulty tracks the candidate's running ability estimate (θ) via a 1-parameter Rasch model. The right-hand sidebar shows θ updating live as questions are answered — judges can *watch* the system step difficulty up after a strong answer and step it down after a weak one. Grounded in Stanford CRFM's 2025 adaptive-testing work showing Spearman ρ > 0.96 with only 8.5% of full-test items.
-2. **Embedding-based adjacency for "transferable foundations".** Gaps aren't presented as a flat list — the UI's ReactFlow skill graph shows which already-known skills make each gap *learnable* via cosine similarity over `sentence-transformers/all-mpnet-base-v2`. The PlanGenerator uses the same adjacencies as the rationale for module ordering.
-3. **Evidence-required scoring with mandatory confidence.** Every per-skill rating ships with direct quotes from the resume and the interview, plus a 0-1 confidence number. Pydantic enforces `min_length=1` on the evidence list at the schema level — there is no code path that produces a black-box rating.
-
----
-
-## Build status
-
-| Stage | Status | What's in it |
-|------:|--------|--------------|
-| 1 | ✅ Done | Repo scaffold · Pydantic schemas · `AssessmentState` · FastAPI skeleton · config · health route · stub assessment routes |
-| 2 | ✅ Done | Supervisor + 5 workers + SQLite checkpointer + smoke test |
-| 3 | ✅ Done | **IRT-driven Interviewer** with `interrupt()` HITL · Bloom-tagged question generation · response scoring with prompt-injection defense |
-| 4 | ✅ Done | **Real Scorer** (3-point evidence-quality rubric, IRT-fused, mandatory evidence + confidence) · **Real GapAnalyzer** (severity-weighted, sentence-transformers adjacency, LLM summary) |
-| 5 | ✅ Done | **Real PlanGenerator** (MALPP three-agent pattern: Diagnose → Reflect → retry) · resource fetchers (roadmap.sh, freeCodeCamp catalog, YouTube Data API, DEV.to) · difficulty-multiplier time estimates |
-| 6 | ✅ Done | **Next.js 15 frontend**: landing page · IRT-driven interview UI with live theta sidebar · ReactFlow skill graph · per-skill assessments with evidence quotes · learning plan with curated resources |
-| 7 | ✅ Done | Mermaid architecture diagram · formal Scoring & logic doc · 3 sample input/output cases · demo video script · submission checklist · CVE-patched Next bump |
-| 8 | 🟡 Code-complete | Voice mode via Pipecat — Deepgram STT + ElevenLabs TTS + Daily/Twilio transport. Not exercised in CI; needs live credentials to demo. See [`voice/README.md`](voice/README.md). |
+All fetchers return `[]` gracefully on any failure — no API key, network down, or parse error breaks the flow.
 
 ---
 
-## Local setup
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Python 3.11+
-- Node.js 20+ (Node 22 tested)
-- An OpenAI or Anthropic API key
-- (Optional) LangSmith API key for tracing
-- (Optional) YouTube Data API key for video resources in the learning plan
+- **Python 3.11+** · **Node.js 20+** · **An OpenAI API key**
 
-### Backend
+### 1 · Clone & set up the backend
 
 ```bash
-cd backend
+git clone https://github.com/senpaisaul/skill-assessment-agent.git
+cd skill-assessment-agent/backend
+
+# Create and activate a virtual environment
 python -m venv .venv
-source .venv/bin/activate           # Windows: .venv\Scripts\activate
+source .venv/bin/activate        # macOS / Linux
+# .venv\Scripts\activate         # Windows
+
 pip install -r requirements.txt
-cp .env.example .env                 # then edit .env with your OPENAI_API_KEY
+
+cp .env.example .env
+# ✏️  Open .env and add your OPENAI_API_KEY
+```
+
+### 2 · Run smoke tests *(no API key needed)*
+
+```bash
+python tests/smoke_stage2.py   # supervisor routing + SQLite checkpointer
+python tests/smoke_stage3.py   # IRT loop + interrupt / resume cycle
+python tests/smoke_stage4.py   # Scorer + GapAnalyzer
+python tests/smoke_stage5.py   # PlanGenerator + MALPP reflection
+```
+
+Each prints `✅ STAGE N SMOKE TEST PASSED`.
+
+### 3 · Start the backend
+
+```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-Health check: <http://localhost:8000/api/health>
-Readiness (env validation): <http://localhost:8000/api/ready>
-Auto docs: <http://localhost:8000/docs>
+| Endpoint | Purpose |
+|----------|---------|
+| [localhost:8000/api/health](http://localhost:8000/api/health) | Liveness check |
+| [localhost:8000/api/ready](http://localhost:8000/api/ready) | Readiness + env validation |
+| [localhost:8000/docs](http://localhost:8000/docs) | Interactive Swagger UI |
 
-### Frontend
+### 4 · Set up & start the frontend
 
 ```bash
-cd frontend
+cd ../frontend
 npm install
-cp .env.example .env.local           # default points at http://localhost:8000
+cp .env.example .env.local      # default points to http://localhost:8000
 npm run dev
 ```
 
-Then open <http://localhost:3000>. The landing page has a "Load sample resume + JD" button that pre-fills realistic content for the demo.
+### 5 · Open [localhost:3000](http://localhost:3000) in Chrome
 
-### Smoke tests (no API key required)
-
-The backend ships with five end-to-end smoke tests that exercise the full graph using mocked LLM calls. Useful for a sanity check after making changes:
-
-```bash
-cd backend
-python tests/smoke_stage2.py    # supervisor + 5 workers + checkpointer
-python tests/smoke_stage3.py    # IRT loop + interrupt/resume cycle
-python tests/smoke_stage4.py    # real Scorer + GapAnalyzer
-python tests/smoke_stage5.py    # PlanGenerator with MALPP reflection loop
-```
-
-Each test prints a `✅ STAGE N SMOKE TEST PASSED` line on success.
+1. 📄 Upload your resume *(PDF, DOCX, or TXT)* — or click **Load sample data**
+2. 📋 Paste the job description
+3. 🚀 Click **Begin interview**
+4. 🎤 Allow microphone access when prompted
+5. 💬 Talk to the agent — or type if you prefer
 
 ---
 
-## Project layout
+## 🎤 Voice Features
+
+| Feature | How it works |
+|---------|-------------|
+| 🔊 **Agent speaks questions** | ElevenLabs TTS (Aria voice) · browser `SpeechSynthesis` fallback |
+| 🎙️ **Candidate speaks answers** | Web Speech API (`SpeechRecognition`) — Chrome required |
+| 🧹 **Filler word cleanup** | `um`, `uh`, `like`, repeated words stripped before scoring |
+| 🔄 **Rephrase on demand** | Click the `?` button → agent rephrases without advancing state |
+| ⌨️ **Text fallback** | Type anytime — voice is optional, never required |
+
+### Optional: ElevenLabs for natural voice
+
+Add to `backend/.env`:
+
+```bash
+ELEVENLABS_API_KEY=your-key-here
+ELEVENLABS_VOICE_ID=9BWtsMINqrJLrRacOk9x   # Aria — empathetic, conversational
+```
+
+Free tier = 10,000 chars/month (plenty for demos). Without it, browser TTS works fine.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| 🐍 **Backend** | Python 3.11+ · FastAPI · LangGraph 0.2 · Instructor · Pydantic v2 · sentence-transformers |
+| ⚛️ **Frontend** | Next.js 15.2.4 · React 19 · TypeScript 5.7 · Tailwind v3 · ReactFlow 11 · lucide-react |
+| 🤖 **Models** | `gpt-4o-mini` (structured tasks) · `gpt-4o` (reasoning + creativity) · Anthropic drop-in via env |
+| 🎙️ **Voice** | Web Speech API (STT) · ElevenLabs Aria / browser SpeechSynthesis (TTS) |
+| 💾 **Storage** | SQLite `MemorySaver` checkpointer — sessions survive restarts |
+| 📊 **Observability** | LangSmith (opt-in, one env var toggle) |
+
+---
+
+## 📁 Project Structure
 
 ```
 skill-assessment-agent/
 ├── backend/
 │   ├── app/
-│   │   ├── api/                       # FastAPI routes
-│   │   │   ├── health.py
-│   │   │   └── assessment.py          # /start, /respond, /result
-│   │   ├── graph/                     # LangGraph supervisor + workers
-│   │   │   ├── nodes/
-│   │   │   │   ├── parser.py          # Resume + JD → typed schemas
-│   │   │   │   ├── supervisor.py      # deterministic state-machine router
-│   │   │   │   ├── interviewer.py     # IRT loop + interrupt() for HITL
-│   │   │   │   ├── scorer.py          # IRT-fused rubric scoring with evidence
-│   │   │   │   ├── gap_analyzer.py    # severity-weighted gaps + adjacency
-│   │   │   │   └── plan_generator.py  # MALPP: Diagnose → Reflect → retry
-│   │   │   ├── irt.py                 # pure IRT/Rasch math
-│   │   │   ├── question_gen.py        # Bloom-targeted Q gen + scoring
-│   │   │   ├── skill_embeddings.py    # sentence-transformers adjacency
-│   │   │   ├── resource_fetchers.py   # roadmap.sh, YT, fCC, DEV.to
-│   │   │   ├── state.py               # AssessmentState TypedDict + IRTState
-│   │   │   └── builder.py             # graph compilation + SQLite checkpointer
-│   │   ├── models/
-│   │   │   └── schemas.py             # Pydantic contracts between nodes
-│   │   ├── llm.py                     # Instructor-wrapped client factory
-│   │   ├── config.py                  # Pydantic Settings
-│   │   └── main.py                    # FastAPI entrypoint
-│   ├── tests/                         # smoke tests with mocked LLMs
-│   │   ├── smoke_stage2.py
-│   │   ├── smoke_stage3.py
-│   │   ├── smoke_stage4.py
-│   │   └── smoke_stage5.py
-│   ├── requirements.txt
-│   └── .env.example
+│   │   ├── api/
+│   │   │   ├── assessment.py        # /start · /start-upload · /respond · /clarify · /result
+│   │   │   ├── health.py            # /health · /ready
+│   │   │   └── tts.py               # ElevenLabs proxy (returns 204 if no key → browser fallback)
+│   │   ├── graph/
+│   │   │   ├── nodes/               # parser · supervisor · interviewer · scorer
+│   │   │   │                        # gap_analyzer · plan_generator
+│   │   │   ├── irt.py               # pure IRT / Rasch math — no I/O
+│   │   │   ├── question_gen.py      # Bloom-targeted Q gen + scoring + clarification
+│   │   │   ├── skill_embeddings.py  # sentence-transformers adjacency graph
+│   │   │   ├── resource_fetchers.py # roadmap.sh · YouTube · freeCodeCamp · DEV.to
+│   │   │   ├── state.py             # AssessmentState TypedDict + IRTState
+│   │   │   └── builder.py           # graph compilation + SQLite checkpointer
+│   │   ├── models/schemas.py        # 15 Pydantic contracts shared across nodes
+│   │   ├── llm.py                   # Instructor-wrapped client factory
+│   │   ├── config.py                # Pydantic Settings — typed, env-file backed
+│   │   └── main.py                  # FastAPI entrypoint + CORS + lifespan
+│   └── tests/                       # smoke_stage{2,3,4,5}.py — mocked LLM calls
 ├── frontend/
 │   ├── app/
-│   │   ├── page.tsx                   # landing: paste resume + JD
-│   │   ├── assess/[sessionId]/        # IRT-driven interview UI
-│   │   ├── result/[sessionId]/        # final dashboard with skill graph
-│   │   ├── layout.tsx
-│   │   └── globals.css
+│   │   ├── page.tsx                 # Landing: resume upload + JD paste
+│   │   ├── assess/[sessionId]/      # Voice interview — SoundWave agent, progress bar, chat
+│   │   └── result/[sessionId]/      # Results: skill graph · assessments · learning plan
 │   ├── components/
-│   │   ├── IrtSidebar.tsx             # live theta tracker (differentiator viz)
-│   │   └── SkillGraph.tsx             # ReactFlow strengths→gaps graph
-│   ├── lib/
-│   │   ├── types.ts                   # TS mirror of Pydantic models
-│   │   ├── api.ts                     # typed fetch wrapper
-│   │   ├── cn.ts                      # Tailwind utility + Bloom/severity colors
-│   │   └── sample-data.ts             # demo resume + JD
-│   ├── package.json                   # Next 15 + React 19 + ReactFlow
-│   └── .env.example
-├── voice/                             # Stage 8 — voice mode (optional)
-│   ├── gateway.py                     # Pipecat pipeline wrapping the same /start /respond
-│   ├── requirements.txt               # voice-only deps
-│   └── README.md                      # setup + run instructions
-├── samples/                           # 3 end-to-end JD/resume cases
-│   ├── 01_senior_ai_engineer.json     # mixed gaps — headline demo case
-│   ├── 02_frontend_to_ml_pivot.json   # heavy gaps — long plan
-│   ├── 03_strong_fit_minimal_gap.json # no gaps — congratulatory empty plan
-│   └── README.md
-├── DEMO_SCRIPT.md                     # 4-minute demo video script
-├── SUBMISSION.md                      # hackathon submission checklist
-├── .gitignore
-└── README.md
+│   │   ├── SoundWave.tsx            # Animated soundwave — idle / speaking / listening / processing
+│   │   ├── BloomInsights.tsx        # Live performance sidebar
+│   │   └── SkillGraph.tsx           # ReactFlow strengths → gaps adjacency graph
+│   └── lib/                         # types.ts · api.ts · cn.ts · sample-data.ts
+├── voice/                           # Optional Pipecat voice gateway (Stage 8)
+├── samples/                         # 3 end-to-end test cases (JSON)
+│   ├── 01_senior_ai_engineer.json   # Mixed gaps — primary demo case
+│   ├── 02_frontend_to_ml_pivot.json # Heavy gaps — long learning plan
+│   └── 03_strong_fit_minimal_gap.json # Near-perfect fit — congratulatory result
+├── DEMO_SCRIPT.md                   # 4-minute demo video script (beat-by-beat)
+└── SUBMISSION.md                    # Hackathon submission checklist
 ```
 
 ---
 
-## Submission artifacts
+## 🧪 Sample Test Cases
 
-- **[SUBMISSION.md](SUBMISSION.md)** — checklist mapped to the hackathon's submission form fields
-- **[DEMO_SCRIPT.md](DEMO_SCRIPT.md)** — 4-minute demo video script (beat-by-beat)
-- **[samples/](samples/)** — three sample inputs covering mixed/heavy-gap/no-gap branches
-- **[voice/](voice/)** — optional Stage 8 voice mode (Pipecat-based, not required for submission)
+Three cases that exercise distinct branches of the agent:
 
-Pre-submission, run all four backend smoke tests:
+| # | Scenario | Key Skills Assessed | Expected Result |
+|---|----------|---------------------|-----------------|
+| 01 | Senior AI engineer — strong background, missing Kubernetes | PyTorch · MLOps · K8s | Strengths + K8s as top gap |
+| 02 | Frontend dev pivoting to ML | React → no ML exp | Heavy gaps, long plan |
+| 03 | Senior backend → senior backend role | Python · APIs · systems | "You're a fit" — minimal/empty plan |
+
+Load any via the **Load sample data** button on the landing page.
+
+---
+
+## 📚 Research Foundations
+
+| Paper / Source | How it's used here |
+|----------------|--------------------|
+| **Anthropic, "Building Effective Agents"** (Dec 2024) | Orchestrator-Workers pattern, supervisor design |
+| **Stanford CRFM adaptive testing** (Nov 2025) | IRT item selection achieving ρ > 0.96 with 8.5% of items |
+| **MALPP** ([arXiv:2601.17346](https://arxiv.org/abs/2601.17346)) | Diagnose → Reflect → Retry learning plan generation |
+| **Databricks LLM-as-judge research** | 3-point rubrics dramatically more consistent than 1–10 scales |
+| **Lo et al., "AI Hiring with LLMs"** (CVPR 2025 · [arXiv:2504.02870](https://arxiv.org/abs/2504.02870)) | Multi-agent resume screening validated against HR professionals |
+| **"LLM-as-an-Interviewer"** (Kim et al. · [arXiv:2412.10424](https://arxiv.org/abs/2412.10424)) | Three-stage interview flow with question modification + clarifying probes |
+| **"Steve"** ([arXiv:2504.03789](https://arxiv.org/abs/2504.03789)) | Closest published peer — career-progression LLM chatbot |
+
+---
+
+## 🔧 Environment Variables
+
+<details>
+<summary><b>Click to expand the full <code>.env</code> reference</b></summary>
 
 ```bash
-cd backend
-python tests/smoke_stage2.py && python tests/smoke_stage3.py && \
-  python tests/smoke_stage4.py && python tests/smoke_stage5.py
+# ── Required ────────────────────────────────────────────────
+OPENAI_API_KEY=sk-...
+
+# ── LLM Provider (OpenAI or Anthropic) ─────────────────────
+ANTHROPIC_API_KEY=                    # optional drop-in
+LLM_PROVIDER=openai                   # openai | anthropic
+
+# ── ElevenLabs TTS (falls back to browser SpeechSynthesis) ─
+ELEVENLABS_API_KEY=                   # free tier: 10k chars/month
+ELEVENLABS_VOICE_ID=9BWtsMINqrJLrRacOk9x  # Aria — empathetic, conversational
+
+# ── LangSmith Observability (opt-in) ───────────────────────
+LANGSMITH_TRACING=false
+LANGSMITH_API_KEY=
+LANGSMITH_PROJECT=skill-assessment-agent
+
+# ── Interview Tuning ────────────────────────────────────────
+MIN_QUESTIONS_PER_SKILL=2             # min questions before soft-stop
+MAX_QUESTIONS_PER_SKILL=4             # hard cap per skill
+IRT_CONFIDENCE_THRESHOLD=0.7          # soft-stop confidence threshold
+
+# ── Storage ─────────────────────────────────────────────────
+SQLITE_CHECKPOINT_PATH=./checkpoints.sqlite
+CHROMA_PERSIST_DIR=./chroma_data
+
+# ── CORS (add Vercel URL for production) ────────────────────
+CORS_ORIGINS=["http://localhost:3000","http://localhost:3001"]
 ```
 
-All four should print `✅ STAGE N SMOKE TEST PASSED`.
+</details>
 
 ---
 
-## Research foundations
+## 📋 API Reference
 
-The architecture is grounded in published 2025–2026 work:
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/assess/start` | Start assessment with raw text resume + JD |
+| `POST` | `/api/assess/start-upload` | Start with PDF/DOCX/TXT file upload + JD |
+| `POST` | `/api/assess/respond` | Submit candidate answer · returns next question or `interview_complete` |
+| `POST` | `/api/assess/clarify` | Rephrase current question — no scoring, no state change |
+| `GET`  | `/api/assess/result/{session_id}` | Fetch final skill assessments + gap analysis + learning plan |
+| `POST` | `/api/tts` | ElevenLabs TTS proxy — returns `204` if no key (frontend falls back) |
+| `GET`  | `/api/health` | Liveness probe |
+| `GET`  | `/api/ready` | Readiness + env validation |
 
-- **Anthropic, "Building Effective Agents"** (Dec 2024) — Orchestrator-Workers pattern.
-- **Lo et al., "AI Hiring with LLMs"** (CVPR 2025 workshop, arXiv:2504.02870) — multi-agent resume-screening framework validated against HR-pro ratings.
-- **"Steve: LLM Powered ChatBot for Career Progression"** (arXiv:2504.03789, Apr 2025) — closest published peer to this problem.
-- **"LLM-as-an-Interviewer"** (Kim et al., arXiv:2412.10424) — three-stage interview flow with question modification + clarifying probes.
-- **"GenMentor"** (WWW 2025) and **MALPP** (arXiv:2601.17346) — multi-agent learning-path generation patterns.
-- **Mem0** (LOCOMO benchmark, 66.9% / 0.20s p95) — chosen memory layer.
-- **Stanford CRFM adaptive testing** (Nov 2025) — IRT-based testing achieving Spearman ρ > 0.96 with 8.5% of items.
-- **Databricks LLM-as-judge research** — low-precision rubrics (3-point) are dramatically more consistent than 1-10 scales.
+Full interactive Swagger UI: [localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## License
+## 🏗️ Build Status
 
-MIT. Built for the Deccan AI hackathon by Abhay Sengar (`senpaisaul`).
+| Stage | Status | Scope |
+|------:|:------:|-------|
+| 1 | ✅ | Repo scaffold · Pydantic schemas · `AssessmentState` · FastAPI skeleton · health route |
+| 2 | ✅ | Supervisor + 5 workers + SQLite checkpointer + smoke test |
+| 3 | ✅ | IRT-driven Interviewer with `interrupt()` HITL · Bloom-tagged Q gen · response scoring |
+| 4 | ✅ | Real Scorer (3-point rubric, IRT-fused, mandatory evidence) · GapAnalyzer (severity + adjacency) |
+| 5 | ✅ | PlanGenerator (MALPP: Diagnose → Reflect → Retry) · resource fetchers · time estimates |
+| 6 | ✅ | Next.js 15 frontend: landing · voice interview UI · ReactFlow skill graph · learning plan |
+| 7 | ✅ | Architecture diagram · scoring docs · 3 sample cases · demo video script · submission checklist |
+| 8 | 🟡 | Voice mode via Pipecat (Deepgram STT + ElevenLabs TTS) — code-complete, needs live credentials |
+
+---
+
+## 🤝 Contributing
+
+Built in ~36 hours for a hackathon. PRs welcome for:
+
+- 📦 Additional resource fetchers (Coursera, Udemy, Pluralsight, etc.)
+- 🌐 ESCO ontology integration for canonical skill normalization
+- 🌍 Multi-language support (the IRT math is fully language-agnostic)
+- 🚀 Production hardening (Redis checkpointer, Docker Compose, CI)
+
+---
+
+## 📄 License
+
+MIT. Built for the **Deccan AI Hackathon 2026** by **Abhay Sengar** ([@senpaisaul](https://github.com/senpaisaul)).
+
+---
+
+<div align="center">
+
+**[🌐 Portfolio](https://abhaysengar.vercel.app)** &nbsp;·&nbsp; **[💼 LinkedIn](https://linkedin.com/in/abhaysengar2109)** &nbsp;·&nbsp; **[🐙 GitHub](https://github.com/senpaisaul)**
+
+<br/>
+
+*If this project was useful or interesting, a ⭐ on GitHub means a lot!*
+
+</div>
