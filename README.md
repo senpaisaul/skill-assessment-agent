@@ -19,7 +19,7 @@
 
 <br/>
 
-[**Live Demo**]((https://skill-assessment-agent-one.vercel.app/)) · [**Architecture**](#️-architecture) · [**Scoring Logic**](#-how-the-scoring-works) · [**API Docs**](#-api-endpoints)
+[**Live Demo**](https://skill-assessment-agent-one.vercel.app/) · [**Architecture**](#️-architecture) · [**Scoring Logic**](#-how-the-scoring-works) · [**API Docs**](#-api-endpoints)
 
 </div>
 
